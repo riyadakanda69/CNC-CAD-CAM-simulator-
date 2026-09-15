@@ -1,0 +1,6 @@
+{
+  "name": "CNC Door 2.5D CAD/CAM & DXF Generator",
+  "description": "Parametric 2.5D CAD design, VCarve-compatible layered DXF generator, and 3-axis CNC toolpath exporter for carved floral arch panel doors.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

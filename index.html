@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CNC Door 2.5D CAD/CAM &amp; DXF Generator</title>
+    <meta name="description" content="Parametric 2.5D CAD design, VCarve-compatible layered DXF generator, and 3-axis CNC toolpath exporter for carved floral arch panel doors." />
+    <meta property="og:title" content="CNC Door 2.5D CAD/CAM &amp; DXF Generator" />
+    <meta property="og:description" content="Parametric 2.5D CAD design, VCarve-compatible layered DXF generator, and 3-axis CNC toolpath exporter for carved floral arch panel doors." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      // Defensive shim for environments where window.fetch is getter-only on Window.prototype
+      (function () {
+        try {
+          var _fetch = typeof window !== 'undefined' && window.fetch ? window.fetch.bind(window) : undefined;
+          Object.defineProperty(window, 'fetch', {
+            get: function () {
+              return _fetch;
+            },
+            set: function (newFetch) {
+              _fetch = newFetch;
+            },
+            configurable: true,
+            enumerable: true,
+          });
+          if (typeof Window !== 'undefined' && Window.prototype) {
+            try {
+              Object.defineProperty(Window.prototype, 'fetch', {
+                get: function () {
+                  return _fetch;
+                },
+                set: function (newFetch) {
+                  _fetch = newFetch;
+                },
+                configurable: true,
+                enumerable: true,
+              });
+            } catch (_) {}
+          }
+        } catch (_) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
