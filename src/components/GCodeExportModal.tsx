@@ -7,6 +7,7 @@ import { X, Download, Copy, Check, Terminal, Cpu, Clock, Activity } from 'lucide
 import { CADLayer, DoorParameters, ToolpathStats, VectorPolyline } from '../types/cnc';
 import { GCodeOptions, generateToolpaths } from '../services/gcodeGenerator';
 import { triggerFileDownload } from '../services/dxfExporter';
+import { MATERIAL_PRESETS } from '../services/materialDatabase';
 
 interface GCodeExportModalProps {
   isOpen: boolean;
@@ -25,9 +26,13 @@ export const GCodeExportModal: React.FC<GCodeExportModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
+  const currentMat =
+    MATERIAL_PRESETS.find((m) => m.id === params.materialType) ||
+    MATERIAL_PRESETS[0];
+
   const [dialect, setDialect] = useState<'iso' | 'mach3' | 'grbl' | 'linuxcnc' | 'dsp'>('mach3');
   const [copied, setCopied] = useState(false);
-  const [maxStepdown, setMaxStepdown] = useState<number>(3.0); // mm
+  const [maxStepdown, setMaxStepdown] = useState<number>(currentMat.recommendedPassDepth || 3.0); // mm
 
   const options: GCodeOptions = {
     dialect,
@@ -139,7 +144,7 @@ export const GCodeExportModal: React.FC<GCodeExportModalProps> = ({
         {/* Footer */}
         <div className="p-4 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between">
           <span className="text-xs text-slate-400">
-            Feed: {params.feedRate} mm/min | Spindle: {params.spindleRpm} RPM | Safe Z: {params.safeZ} mm
+            <span className="text-amber-300 font-medium">{currentMat.name}</span> • Feed: {params.feedRate} mm/min | Spindle: {params.spindleRpm} RPM | Safe Z: {params.safeZ} mm
           </span>
 
           <div className="flex items-center gap-2">

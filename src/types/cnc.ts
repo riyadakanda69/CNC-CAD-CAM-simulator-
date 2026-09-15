@@ -1,5 +1,5 @@
 /**
- * CNC Door CAD/CAM & VCarve DXF Type Definitions
+ * CNC Door, Almira, Wardrobe & Bed CAD/CAM & VCarve DXF Type Definitions
  */
 
 export interface Point2D {
@@ -32,10 +32,25 @@ export interface CADLayer {
   polylineCount?: number;
 }
 
+export type DesignCategory = 'door' | 'almira' | 'wardrobe' | 'bed';
+export type PanelStyle = 'floral_arch' | 'modern_fluted' | 'french_provincial' | 'geometric_jali';
+export type MaterialPreset =
+  | 'oak'
+  | 'walnut'
+  | 'teak'
+  | 'mahogany'
+  | 'pine'
+  | 'mdf'
+  | 'plywood'
+  | 'solid_wood';
+
 export interface DoorParameters {
-  width: number; // Overall door width (mm, default: 900)
-  height: number; // Overall door height (mm, default: 2100)
-  thickness: number; // Door thickness (mm, default: 40)
+  designType?: DesignCategory; // 'door' | 'almira' | 'wardrobe' | 'bed'
+  panelStyle?: PanelStyle; // 'floral_arch' | 'modern_fluted' | 'french_provincial' | 'geometric_jali'
+  materialType?: MaterialPreset; // 'mdf' | 'solid_wood' | 'plywood'
+  width: number; // Overall width (mm, default: 900)
+  height: number; // Overall height (mm, default: 2100)
+  thickness: number; // Thickness (mm, default: 40)
   stileWidth: number; // Left/Right stile width (mm, default: 110)
   topRailHeight: number; // Top rail height above arch (mm, default: 150)
   bottomRailHeight: number; // Bottom rail height (mm, default: 180)

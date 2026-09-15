@@ -26,6 +26,7 @@ import { DoorParametersPanel } from './components/DoorParametersPanel';
 import { ReferenceDoorComparison } from './components/ReferenceDoorComparison';
 import { VCarveGuideModal } from './components/VCarveGuideModal';
 import { GCodeExportModal } from './components/GCodeExportModal';
+import { MATERIAL_PRESETS } from './services/materialDatabase';
 import {
   Download,
   Layers,
@@ -41,6 +42,7 @@ import {
 } from 'lucide-react';
 
 const INITIAL_PARAMS: DoorParameters = {
+  materialType: 'oak',
   width: 900,
   height: 2100,
   thickness: 40,
@@ -58,9 +60,9 @@ const INITIAL_PARAMS: DoorParameters = {
   ballnoseDiameter: 3.175,
   endmillDiameter: 6.35,
   safeZ: 10,
-  feedRate: 2400,
-  plungeRate: 800,
-  spindleRpm: 18000,
+  feedRate: 2200,
+  plungeRate: 700,
+  spindleRpm: 16000,
   originPosition: 'bottom_left',
 };
 
@@ -164,6 +166,16 @@ export default function App() {
               </h1>
               <span className="px-1.5 py-0.5 rounded text-[10px] bg-cyan-500/10 text-cyan-400 font-mono border border-cyan-500/20">
                 VCarve DXF
+              </span>
+              <span className="hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-amber-500/10 text-amber-300 font-medium border border-amber-500/20">
+                <span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{
+                    backgroundColor:
+                      (MATERIAL_PRESETS.find((m) => m.id === params.materialType) || MATERIAL_PRESETS[0]).surfaceColor,
+                  }}
+                />
+                {(MATERIAL_PRESETS.find((m) => m.id === params.materialType) || MATERIAL_PRESETS[0]).name}
               </span>
             </div>
             <p className="text-[11px] text-slate-400 hidden sm:block">

@@ -4,7 +4,8 @@
 
 import React from 'react';
 import { DoorParameters } from '../types/cnc';
-import { Sliders, RotateCcw, Sparkles } from 'lucide-react';
+import { Sliders, RotateCcw, Sparkles, TreePine, Zap, Info, ShieldCheck } from 'lucide-react';
+import { MATERIAL_PRESETS, MaterialConfig } from '../services/materialDatabase';
 
 interface DoorParametersPanelProps {
   params: DoorParameters;
@@ -69,6 +70,57 @@ export const DoorParametersPanel: React.FC<DoorParametersPanelProps> = ({
         grooveDepth: 9,
       },
     },
+    {
+      name: 'Almira Shutter (450 x 1800 mm)',
+      desc: 'Almirah cabinet shutter / panel door for 3-axis CNC board routing',
+      values: {
+        width: 450,
+        height: 1800,
+        thickness: 25,
+        stileWidth: 70,
+        topRailHeight: 110,
+        bottomRailHeight: 130,
+        archRise: 65,
+        centerPanelWidth: 160,
+        cofferedGridRows: 6,
+        reliefDepth: 6,
+        grooveDepth: 5,
+      },
+    },
+    {
+      name: 'Wardrobe Door (550 x 2400 mm)',
+      desc: 'Tall wardrobe / closet shutter door in MDF or solid wood',
+      values: {
+        width: 550,
+        height: 2400,
+        thickness: 25,
+        stileWidth: 80,
+        topRailHeight: 130,
+        bottomRailHeight: 160,
+        archRise: 80,
+        centerPanelWidth: 190,
+        cofferedGridRows: 8,
+        reliefDepth: 7,
+        grooveDepth: 6,
+      },
+    },
+    {
+      name: 'Bed Headboard (1800 x 1100 mm)',
+      desc: 'King/Queen bed headboard backrest decorative panel',
+      values: {
+        width: 1800,
+        height: 1100,
+        thickness: 35,
+        stileWidth: 140,
+        topRailHeight: 160,
+        bottomRailHeight: 140,
+        archRise: 90,
+        centerPanelWidth: 500,
+        cofferedGridRows: 4,
+        reliefDepth: 10,
+        grooveDepth: 8,
+      },
+    },
   ];
 
   return (
@@ -97,7 +149,7 @@ export const DoorParametersPanel: React.FC<DoorParametersPanelProps> = ({
         <div>
           <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            Door Size Presets
+            Furniture & Door Presets
           </label>
           <div className="space-y-1.5">
             {presets.map((p, idx) => (
@@ -115,6 +167,118 @@ export const DoorParametersPanel: React.FC<DoorParametersPanelProps> = ({
           </div>
         </div>
 
+        {/* Section: Material Selection & CNC Feeds/Speeds */}
+        <div className="space-y-3 pt-3 border-t border-slate-800">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+              <TreePine className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Material & CNC Speeds</span>
+            </h4>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
+              Auto-Calculated
+            </span>
+          </div>
+
+          {/* Material Picker Cards */}
+          <div className="space-y-2">
+            <label className="text-[11px] text-slate-400 block">
+              Wood / Substrate Type
+            </label>
+            <div className="grid grid-cols-1 gap-1.5">
+              {MATERIAL_PRESETS.map((mat) => {
+                const isSelected =
+                  params.materialType === mat.id ||
+                  (!params.materialType && mat.id === 'oak');
+
+                return (
+                  <button
+                    key={mat.id}
+                    type="button"
+                    onClick={() => {
+                      onChange({
+                        materialType: mat.id as any,
+                        feedRate: mat.recommendedFeedRate,
+                        plungeRate: mat.recommendedPlungeRate,
+                        spindleRpm: mat.recommendedSpindleRpm,
+                      });
+                    }}
+                    className={`text-left p-2 rounded-lg border transition flex items-start gap-2.5 ${
+                      isSelected
+                        ? 'bg-slate-800 border-cyan-500 shadow-sm shadow-cyan-500/10 ring-1 ring-cyan-500/50'
+                        : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-800/50'
+                    }`}
+                  >
+                    <div
+                      className="w-3.5 h-3.5 rounded-full mt-0.5 flex-shrink-0 border border-white/20 shadow-inner"
+                      style={{ backgroundColor: mat.surfaceColor }}
+                      title={mat.name}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <span
+                          className={`text-xs font-medium truncate ${
+                            isSelected ? 'text-cyan-300 font-semibold' : 'text-slate-200'
+                          }`}
+                        >
+                          {mat.name}
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded font-mono bg-slate-950/60 text-slate-400 border border-slate-800 flex-shrink-0">
+                          {mat.recommendedFeedRate} mm/m
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 leading-tight mt-0.5 line-clamp-1">
+                        {mat.description}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Active Material Machining Recommendation Banner */}
+          {(() => {
+            const currentMat =
+              MATERIAL_PRESETS.find((m) => m.id === params.materialType) ||
+              MATERIAL_PRESETS[0];
+
+            return (
+              <div className="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 space-y-1.5 text-[11px]">
+                <div className="flex items-center justify-between text-slate-300">
+                  <span className="text-slate-400 font-medium">Selected Material:</span>
+                  <span className="font-semibold text-cyan-300 flex items-center gap-1">
+                    <span
+                      className="w-2 h-2 rounded-full inline-block"
+                      style={{ backgroundColor: currentMat.surfaceColor }}
+                    />
+                    {currentMat.name}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] pt-1 border-t border-slate-800/80 text-slate-400 font-mono">
+                  <div>
+                    Density: <span className="text-slate-200">{currentMat.densityKgM3} kg/m³</span>
+                  </div>
+                  <div>
+                    Hardness: <span className="text-slate-200">{currentMat.jankaHardness}</span>
+                  </div>
+                  <div>
+                    Feed: <span className="text-emerald-400 font-semibold">{currentMat.recommendedFeedRate} mm/min</span>
+                  </div>
+                  <div>
+                    Spindle: <span className="text-cyan-400 font-semibold">{currentMat.recommendedSpindleRpm} RPM</span>
+                  </div>
+                </div>
+
+                <div className="pt-1 text-[10px] text-slate-400 leading-normal flex items-start gap-1">
+                  <Info className="w-3 h-3 text-cyan-400 flex-shrink-0 mt-0.5" />
+                  <span>{currentMat.machiningNotes}</span>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+
         {/* Section 1: Overall Dimensions */}
         <div className="space-y-3 pt-3 border-t border-slate-800">
           <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
@@ -123,12 +287,12 @@ export const DoorParametersPanel: React.FC<DoorParametersPanelProps> = ({
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="text-[11px] text-slate-400 block mb-1">Door Width</label>
+              <label className="text-[11px] text-slate-400 block mb-1">Door / Panel Width</label>
               <div className="flex items-center">
                 <input
                   type="number"
                   value={params.width}
-                  onChange={(e) => onChange({ width: Math.max(400, parseFloat(e.target.value) || 0) })}
+                  onChange={(e) => onChange({ width: Math.max(300, parseFloat(e.target.value) || 0) })}
                   className="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-xs text-cyan-300 font-mono focus:border-cyan-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-500 ml-1.5">mm</span>
@@ -136,12 +300,12 @@ export const DoorParametersPanel: React.FC<DoorParametersPanelProps> = ({
             </div>
 
             <div>
-              <label className="text-[11px] text-slate-400 block mb-1">Door Height</label>
+              <label className="text-[11px] text-slate-400 block mb-1">Door / Panel Height</label>
               <div className="flex items-center">
                 <input
                   type="number"
                   value={params.height}
-                  onChange={(e) => onChange({ height: Math.max(1000, parseFloat(e.target.value) || 0) })}
+                  onChange={(e) => onChange({ height: Math.max(600, parseFloat(e.target.value) || 0) })}
                   className="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-xs text-cyan-300 font-mono focus:border-cyan-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-500 ml-1.5">mm</span>

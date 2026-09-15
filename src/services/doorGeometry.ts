@@ -313,189 +313,181 @@ export function generateDoorGeometry(params: DoorParameters): VectorPolyline[] {
     ]),
   });
 
-  // Calculate inner panel margins
+  // Structural Frame Boundary Coordinates
   const frameLeft = params.stileWidth;
   const frameRight = params.width - params.stileWidth;
   const frameBottom = params.bottomRailHeight;
-  const frameTopFlat = params.height - params.topRailHeight;
   const frameCenterX = params.width / 2;
-  const archRise = params.archRise;
-  const archApexY = frameTopFlat + archRise;
+  const frameTopFlat = params.height - params.topRailHeight;
+  const frameTopCrown = frameTopFlat + params.archRise;
 
-  // 2. LAYER 02: TOP ARCH MOLDING & STEPPED FRAME
-  // Construct Segmental Arch curve
-  const steps = [
-    { offset: 0, id: 'arch_outer' },
-    { offset: 18, id: 'arch_step1' },
-    { offset: 34, id: 'arch_step2' },
-  ];
-
-  steps.forEach((step) => {
-    const leftX = frameLeft + step.offset;
-    const rightX = frameRight - step.offset;
-    const bottomY = frameBottom + step.offset;
-    const shoulderY = frameTopFlat - step.offset * 0.7;
-    const apexY = archApexY - step.offset;
-
-    // Corner radius for arch shoulder transition
-    const shoulderCurveLeft = sampleCubicBezier(
-      { x: leftX, y: shoulderY - 60 },
-      { x: leftX, y: shoulderY + 20 },
-      { x: leftX + 40, y: shoulderY + 60 },
-      { x: leftX + 90, y: shoulderY + 75 },
-      10
-    );
-
-    // Arch top crown curve left to apex
-    const archTopLeft = sampleCubicBezier(
-      { x: leftX + 90, y: shoulderY + 75 },
-      { x: frameCenterX - 80, y: apexY },
-      { x: frameCenterX - 30, y: apexY },
-      { x: frameCenterX, y: apexY },
-      14
-    );
-
-    // Arch top crown curve apex to right
-    const archTopRight = sampleCubicBezier(
-      { x: frameCenterX, y: apexY },
-      { x: frameCenterX + 30, y: apexY },
-      { x: frameCenterX + 80, y: apexY },
-      { x: rightX - 90, y: shoulderY + 75 },
-      14
-    );
-
-    // Right shoulder curve
-    const shoulderCurveRight = sampleCubicBezier(
-      { x: rightX - 90, y: shoulderY + 75 },
-      { x: rightX - 40, y: shoulderY + 60 },
-      { x: rightX, y: shoulderY + 20 },
-      { x: rightX, y: shoulderY - 60 },
-      10
-    );
-
-    const fullArchPts: Point2D[] = [
-      { x: leftX, y: bottomY },
-      ...shoulderCurveLeft,
-      ...archTopLeft.slice(1),
-      ...archTopRight.slice(1),
-      ...shoulderCurveRight.slice(1),
-      { x: rightX, y: bottomY },
+  // 2. LAYER 02: ARCH MOLDING FRAME
+  // If archRise > 5, generate the segmented Roman / Neoclassical arch molding profile steps
+  if (params.archRise > 5) {
+    const archSteps = [
+      { offset: 0, depth: 6, tool: 'vbit' as const, name: 'Outer Arch Reveal' },
+      { offset: -16, depth: 5, tool: 'vbit' as const, name: 'Mid Arch Fillet' },
+      { offset: -34, depth: 7, tool: 'ballnose' as const, name: 'Inner Arch Ogee Profile' },
     ];
 
-    polylines.push({
-      id: `${step.id}_profile`,
-      layerId: '02_TOP_ARCH_FRAME',
-      name: `Arch Molding Step ${step.offset}mm`,
-      closed: true,
-      depth: 6,
-      toolType: 'vbit',
-      points: transformPts(fullArchPts),
-    });
-  });
+    archSteps.forEach((step, idx) => {
+      const leftX = frameLeft - step.offset;
+      const rightX = frameRight + step.offset;
+      const shoulderY = frameTopFlat - 60 - step.offset;
+      const peakY = frameTopCrown - step.offset;
 
-  // 3. LAYER 03: BAROQUE CROWN CREST (Arch Tympanum Pediment Carving)
-  const crestCenterY = archApexY - 45;
+      const pLeftBottom = { x: leftX, y: frameBottom };
+      const pLeftShoulder = { x: leftX, y: shoulderY };
+      const pPeak = { x: frameCenterX, y: peakY };
+      const pRightShoulder = { x: rightX, y: shoulderY };
+      const pRightBottom = { x: rightX, y: frameBottom };
 
-  // Central Palmette / Fan crest
-  const palmetteFanPts: Point2D[] = [];
-  const fanPetalAngles = [-50, -35, -20, -7, 7, 20, 35, 50];
-  fanPetalAngles.forEach((angle, idx) => {
-    const len = 42 - Math.abs(angle) * 0.35;
-    const pts = generatePetalContour(frameCenterX, crestCenterY - 10, len, 14, angle);
-    polylines.push({
-      id: `crest_fan_petal_${idx}`,
-      layerId: '03_CROWN_CREST_RELIEF',
-      name: `Crest Palmette Petal ${idx + 1}`,
-      closed: true,
-      depth: 8,
-      toolType: 'vbit',
-      points: transformPts(pts),
-    });
-  });
+      const cLeft1 = { x: leftX, y: shoulderY + params.archRise * 0.45 };
+      const cLeft2 = { x: frameCenterX - (rightX - leftX) * 0.28, y: peakY };
+      const leftArc = sampleCubicBezier(pLeftShoulder, cLeft1, cLeft2, pPeak, 24);
 
-  // Central crest bottom button rosette
-  polylines.push({
-    id: 'crest_center_button',
-    layerId: '03_CROWN_CREST_RELIEF',
-    name: 'Crest Center Rosette Button',
-    closed: true,
-    depth: 7,
-    toolType: 'ballnose',
-    points: transformPts(generateEllipsePolyline(frameCenterX, crestCenterY - 14, 16, 16, 0, 24)),
-  });
+      const cRight1 = { x: frameCenterX + (rightX - leftX) * 0.28, y: peakY };
+      const cRight2 = { x: rightX, y: shoulderY + params.archRise * 0.45 };
+      const rightArc = sampleCubicBezier(pPeak, cRight1, cRight2, pRightShoulder, 24);
 
-  // Mirrored C-Scroll Volutes (Left & Right)
-  [-1, 1].forEach((side) => {
-    const sideName = side === -1 ? 'left' : 'right';
-
-    // Main Volute Scroll
-    const v0 = { x: frameCenterX + side * 12, y: crestCenterY - 14 };
-    const v1 = { x: frameCenterX + side * 45, y: crestCenterY - 6 };
-    const v2 = { x: frameCenterX + side * 70, y: crestCenterY + 18 };
-    const v3 = { x: frameCenterX + side * 40, y: crestCenterY + 34 };
-    const v4 = { x: frameCenterX + side * 22, y: crestCenterY + 16 };
-    const voluteOuter = sampleCubicBezier(v0, v1, v2, v3, 12);
-    const voluteInner = sampleCubicBezier(v3, v4, { x: frameCenterX + side * 16, y: crestCenterY - 4 }, v0, 10);
-
-    polylines.push({
-      id: `crest_volute_${sideName}`,
-      layerId: '03_CROWN_CREST_RELIEF',
-      name: `Crest Volute Scroll ${sideName}`,
-      closed: true,
-      depth: 8,
-      toolType: 'vbit',
-      points: transformPts([...voluteOuter, ...voluteInner]),
-    });
-
-    // Three side button florets & horizontal acanthus sprays
-    const rosetteDistances = [75, 125, 175];
-    rosetteDistances.forEach((dist, rIdx) => {
-      const btnX = frameCenterX + side * dist;
-      const btnY = crestCenterY - 8 - rIdx * 5;
-
-      // Rosette button outer
-      polylines.push({
-        id: `crest_floret_${sideName}_${rIdx}`,
-        layerId: '03_CROWN_CREST_RELIEF',
-        name: `Crest Floret ${sideName} ${rIdx + 1}`,
-        closed: true,
-        depth: 6,
-        toolType: 'ballnose',
-        points: transformPts(generateEllipsePolyline(btnX, btnY, 11, 11, 0, 20)),
-      });
-
-      // Acanthus horizontal leaf spray connecting to arch shoulder
-      const leafData = generateAcanthusLeaf(
-        btnX + side * 12,
-        btnY,
-        38 - rIdx * 4,
-        14,
-        side === -1 ? -100 + rIdx * 5 : 100 - rIdx * 5,
-        side * 0.2
-      );
+      const framePts = [pLeftBottom, pLeftShoulder, ...leftArc.slice(1), ...rightArc.slice(1), pRightBottom];
 
       polylines.push({
-        id: `crest_leaf_${sideName}_${rIdx}`,
-        layerId: '03_CROWN_CREST_RELIEF',
-        name: `Crest Leaf Spray ${sideName} ${rIdx + 1}`,
-        closed: true,
-        depth: 7,
-        toolType: 'vbit',
-        points: transformPts(leafData.contour),
-      });
-
-      // Vein detail
-      polylines.push({
-        id: `crest_leaf_vein_${sideName}_${rIdx}`,
-        layerId: '09_FLORAL_VEIN_DETAILS',
-        name: `Crest Leaf Vein ${sideName} ${rIdx + 1}`,
+        id: `arch_frame_step_${idx}`,
+        layerId: '02_TOP_ARCH_FRAME',
+        name: `Arch Molding Step ${idx + 1} (${step.name})`,
         closed: false,
-        depth: 2.5,
-        toolType: 'vbit',
-        points: transformPts(leafData.vein),
+        depth: step.depth,
+        toolType: step.tool,
+        points: transformPts(framePts),
       });
     });
-  });
+  } else {
+    // Flat top frame molding for modern/cabinet/wardrobe styles
+    [0, -16, -34].forEach((offset, idx) => {
+      const leftX = frameLeft - offset;
+      const rightX = frameRight + offset;
+      const topY = frameTopFlat - offset;
+
+      polylines.push({
+        id: `flat_frame_step_${idx}`,
+        layerId: '02_TOP_ARCH_FRAME',
+        name: `Flat Frame Molding Step ${idx + 1}`,
+        closed: false,
+        depth: 6 - idx,
+        toolType: 'vbit',
+        points: transformPts([
+          { x: leftX, y: frameBottom },
+          { x: leftX, y: topY },
+          { x: rightX, y: topY },
+          { x: rightX, y: frameBottom },
+        ]),
+      });
+    });
+  }
+
+  // 3. LAYER 03: TYMPANUM CROWN CREST RELIEF (Central Palmette Fan & Twin Volutes)
+  const crestCenterY = frameTopCrown - 55;
+  if (params.archRise > 25) {
+    const fanPetalAngles = [-50, -35, -20, -7, 7, 20, 35, 50];
+    fanPetalAngles.forEach((angle, idx) => {
+      const len = 42 - Math.abs(angle) * 0.35;
+      const pts = generatePetalContour(frameCenterX, crestCenterY - 10, len, 14, angle);
+      polylines.push({
+        id: `crest_fan_petal_${idx}`,
+        layerId: '03_CROWN_CREST_RELIEF',
+        name: `Crest Palmette Petal ${idx + 1}`,
+        closed: true,
+        depth: 8,
+        toolType: 'vbit',
+        points: transformPts(pts),
+      });
+    });
+
+    // Central crest bottom button rosette
+    polylines.push({
+      id: 'crest_center_button',
+      layerId: '03_CROWN_CREST_RELIEF',
+      name: 'Crest Center Rosette Button',
+      closed: true,
+      depth: 7,
+      toolType: 'ballnose',
+      points: transformPts(generateEllipsePolyline(frameCenterX, crestCenterY - 14, 16, 16, 0, 24)),
+    });
+
+    // Mirrored C-Scroll Volutes (Left & Right)
+    [-1, 1].forEach((side) => {
+      const sideName = side === -1 ? 'left' : 'right';
+
+      // Main Volute Scroll
+      const v0 = { x: frameCenterX + side * 12, y: crestCenterY - 14 };
+      const v1 = { x: frameCenterX + side * 45, y: crestCenterY - 6 };
+      const v2 = { x: frameCenterX + side * 70, y: crestCenterY + 18 };
+      const v3 = { x: frameCenterX + side * 40, y: crestCenterY + 34 };
+      const v4 = { x: frameCenterX + side * 22, y: crestCenterY + 16 };
+      const voluteOuter = sampleCubicBezier(v0, v1, v2, v3, 12);
+      const voluteInner = sampleCubicBezier(v3, v4, { x: frameCenterX + side * 16, y: crestCenterY - 4 }, v0, 10);
+
+      polylines.push({
+        id: `crest_volute_${sideName}`,
+        layerId: '03_CROWN_CREST_RELIEF',
+        name: `Crest Volute Scroll ${sideName}`,
+        closed: true,
+        depth: 8,
+        toolType: 'vbit',
+        points: transformPts([...voluteOuter, ...voluteInner]),
+      });
+
+      // Three side button florets & horizontal acanthus sprays
+      const rosetteDistances = [75, 125, 175];
+      rosetteDistances.forEach((dist, rIdx) => {
+        const btnX = frameCenterX + side * dist;
+        const btnY = crestCenterY - 8 - rIdx * 5;
+
+        // Rosette button outer
+        polylines.push({
+          id: `crest_floret_${sideName}_${rIdx}`,
+          layerId: '03_CROWN_CREST_RELIEF',
+          name: `Crest Floret ${sideName} ${rIdx + 1}`,
+          closed: true,
+          depth: 6,
+          toolType: 'ballnose',
+          points: transformPts(generateEllipsePolyline(btnX, btnY, 11, 11, 0, 20)),
+        });
+
+        // Acanthus horizontal leaf spray connecting to arch shoulder
+        const leafData = generateAcanthusLeaf(
+          btnX + side * 12,
+          btnY,
+          38 - rIdx * 4,
+          14,
+          side === -1 ? -100 + rIdx * 5 : 100 - rIdx * 5,
+          side * 0.2
+        );
+
+        polylines.push({
+          id: `crest_leaf_${sideName}_${rIdx}`,
+          layerId: '03_CROWN_CREST_RELIEF',
+          name: `Crest Leaf Spray ${sideName} ${rIdx + 1}`,
+          closed: true,
+          depth: 7,
+          toolType: 'vbit',
+          points: transformPts(leafData.contour),
+        });
+
+        // Vein detail
+        polylines.push({
+          id: `crest_leaf_vein_${sideName}_${rIdx}`,
+          layerId: '09_FLORAL_VEIN_DETAILS',
+          name: `Crest Leaf Vein ${sideName} ${rIdx + 1}`,
+          closed: false,
+          depth: 2.5,
+          toolType: 'vbit',
+          points: transformPts(leafData.vein),
+        });
+      });
+    });
+  }
 
   // 4. MAIN INNER FIELD DIMENSIONS
   // Central column for the tall floral vine

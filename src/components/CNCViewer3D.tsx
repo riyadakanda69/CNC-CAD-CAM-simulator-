@@ -7,6 +7,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { CADLayer, DoorParameters, ToolpathSegment, VectorPolyline } from '../types/cnc';
 import { Play, Pause, RotateCcw, Eye, Layers, Compass, Box } from 'lucide-react';
+import { MATERIAL_PRESETS } from '../services/materialDatabase';
 
 interface CNCViewer3DProps {
   polylines: VectorPolyline[];
@@ -65,20 +66,25 @@ export const CNCViewer3D: React.FC<CNCViewer3DProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
 
-    // 1. Natural warm wood base (Teak / Oak)
+    // 1. Natural wood base matching selected materialType
+    const activeMat =
+      MATERIAL_PRESETS.find((m) => m.id === params.materialType) ||
+      MATERIAL_PRESETS[0];
+
     const grad = ctx.createLinearGradient(0, 0, texW, 0);
-    grad.addColorStop(0, '#c28b58');
-    grad.addColorStop(0.2, '#d69d6b');
-    grad.addColorStop(0.5, '#c9905c');
-    grad.addColorStop(0.8, '#d49b67');
-    grad.addColorStop(1, '#be8653');
+    grad.addColorStop(0, activeMat.surfaceColor);
+    grad.addColorStop(0.2, activeMat.carvingHighlight);
+    grad.addColorStop(0.5, activeMat.surfaceColor);
+    grad.addColorStop(0.8, activeMat.grainColor);
+    grad.addColorStop(1, activeMat.surfaceColor);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, texW, texH);
 
-    // 2. Subtle organic wood grain stripes
-    ctx.fillStyle = 'rgba(100, 60, 20, 0.06)';
+    // 2. Subtle organic wood grain stripes (mdf has less grain, hardwoods more)
+    const grainAlpha = activeMat.category === 'engineered' ? 'rgba(70, 50, 30, 0.025)' : 'rgba(80, 40, 10, 0.08)';
+    ctx.fillStyle = grainAlpha;
     for (let y = 0; y < texH; y += 3) {
-      if (Math.sin(y * 0.08) > 0.4) {
+      if (Math.sin(y * 0.08) > 0.35) {
         ctx.fillRect(0, y, texW, 2);
       }
     }
@@ -97,7 +103,7 @@ export const CNCViewer3D: React.FC<CNCViewer3DProps> = ({
         poly.layerId === '04_COFFERED_GRID_GROOVES' ||
         poly.layerId === '07_CENTER_PANEL_BORDER'
       ) {
-        ctx.fillStyle = 'rgba(70, 35, 10, 0.45)'; // deep recessed groove shadow
+        ctx.fillStyle = activeMat.recessShadow + '80'; // deep recessed groove shadow
         ctx.beginPath();
         ctx.moveTo(cadToTexX(poly.points[0].x), cadToTexY(poly.points[0].y));
         for (let i = 1; i < poly.points.length; i++) {
@@ -118,8 +124,8 @@ export const CNCViewer3D: React.FC<CNCViewer3DProps> = ({
         poly.layerId === '06_ROSETTES_CARVING'
       ) {
         // Highlighting relief top surface
-        ctx.fillStyle = 'rgba(235, 185, 140, 0.85)'; // raised wood highlight
-        ctx.shadowColor = 'rgba(40, 15, 0, 0.6)';
+        ctx.fillStyle = activeMat.carvingHighlight; // raised wood highlight
+        ctx.shadowColor = 'rgba(20, 10, 5, 0.7)';
         ctx.shadowBlur = 8;
         ctx.shadowOffsetX = 3;
         ctx.shadowOffsetY = 4;
